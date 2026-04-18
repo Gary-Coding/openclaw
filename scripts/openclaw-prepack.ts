@@ -101,6 +101,38 @@ function run(command: string, args: string[]): void {
   process.exit(result.status ?? 1);
 }
 
+function resolvePnpmCommand(): { command: string; args: string[] } {
+  const npmExecPath = process.env.npm_execpath?.trim();
+  if (npmExecPath) {
+    return {
+      command: process.execPath,
+      args: [npmExecPath],
+    };
+  }
+
+  const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+  const pnpmCheck = spawnSync(pnpmCommand, ["--version"], {
+    stdio: "ignore",
+    env: process.env,
+  });
+  if (pnpmCheck.status === 0) {
+    return { command: pnpmCommand, args: [] };
+  }
+
+  const corepackCheck = spawnSync("corepack", ["--version"], {
+    stdio: "ignore",
+    env: process.env,
+  });
+  if (corepackCheck.status === 0) {
+    return {
+      command: "corepack",
+      args: ["pnpm"],
+    };
+  }
+
+  return { command: pnpmCommand, args: [] };
+}
+
 function runBuildSmoke(): void {
   run(process.execPath, ["scripts/test-built-bundled-channel-entry-smoke.mjs"]);
 }
@@ -110,9 +142,9 @@ async function writeDistInventory(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
-  run(pnpmCommand, ["build"]);
-  run(pnpmCommand, ["ui:build"]);
+  const pnpm = resolvePnpmCommand();
+  run(pnpm.command, [...pnpm.args, "build"]);
+  run(pnpm.command, [...pnpm.args, "ui:build"]);
   ensurePreparedArtifacts();
   await writeDistInventory();
   runBuildSmoke();
