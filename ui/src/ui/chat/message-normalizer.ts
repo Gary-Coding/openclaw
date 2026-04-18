@@ -271,9 +271,9 @@ function isInternalOnlyAsyncCommandFollowupText(text: string): boolean {
     return false;
   }
   return (
-    trimmed.startsWith("An async command you ran earlier has completed.") &&
+    trimmed.includes("An async command you ran earlier has completed.") &&
     trimmed.includes(
-      "\nHandle the result internally. Do not relay it to the user unless explicitly requested.",
+      "Handle the result internally. Do not relay it to the user unless explicitly requested.",
     )
   );
 }

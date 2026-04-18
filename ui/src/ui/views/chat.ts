@@ -1795,6 +1795,15 @@ function buildChatItems(props: ChatProps): Array<ChatItem | MessageGroup> {
       continue;
     }
 
+    const hasVisibleNormalizedContent =
+      normalized.content.length > 0 ||
+      normalized.replyTarget !== undefined ||
+      Boolean(extractTextCached(msg)?.trim());
+    const hasVisibleThinking = props.showThinking && Boolean(extractThinkingCached(msg)?.trim());
+    if (normalized.role === "assistant" && !hasVisibleNormalizedContent && !hasVisibleThinking) {
+      continue;
+    }
+
     items.push({
       kind: "message",
       key: messageKey(msg, i),
