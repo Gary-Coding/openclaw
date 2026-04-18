@@ -662,9 +662,12 @@ export function buildAgentSystemPrompt(params: {
           'For requests like "do this in codex/claude code/cursor/gemini" or similar ACP harnesses, treat it as ACP harness intent and call `sessions_spawn` with `runtime: "acp"`.',
           'On Discord, default ACP harness requests to thread-bound persistent sessions (`thread: true`, `mode: "session"`) unless the user asks otherwise.',
           "Set `agentId` explicitly unless `acp.defaultAgent` is configured, and do not route ACP harness requests through `subagents`/`agents_list` or local PTY exec flows.",
+          'Use `streamTo: "parent"` only with `sessions_spawn({ runtime: "acp" })`. Never include `streamTo` when `runtime` is omitted or set to `"subagent"`.',
           'For ACP harness thread spawns, do not call `message` with `action=thread-create`; use `sessions_spawn` (`runtime: "acp"`, `thread: true`) as the single thread creation path.',
         ]
       : []),
+    'For normal OpenClaw subagent spawns, use `sessions_spawn` with `runtime: "subagent"` (or omit `runtime`) and do not pass `streamTo`.',
+    "If a sessions_spawn call fails validation, fix the arguments before retrying. Do not repeat the same invalid payload and do not fall back to exec just to work around spawn parameter errors.",
     "Do not poll `subagents list` / `sessions_list` in a loop; only check status on-demand (for intervention, debugging, or when explicitly asked).",
     "",
     ...buildOverridablePromptSection({
@@ -684,6 +687,7 @@ export function buildAgentSystemPrompt(params: {
           runtimeChannel: params.runtimeInfo?.channel,
           inlineButtonsEnabled,
         }),
+        "For exec tool calls, do not set `security` or `ask` arguments unless the user explicitly asked to change exec policy for the session. Use the current session exec defaults instead.",
         "Never execute /approve through exec or any other shell/tool path; /approve is a user-facing approval command, not a shell command.",
         "Treat allow-once as single-command only: if another elevated command needs approval, request a fresh /approve and do not claim prior approval covered it.",
         "When approvals are required, preserve and show the full command/script exactly as provided (including chained operators like &&, ||, |, ;, or multiline shells) so the user can approve what will actually run.",

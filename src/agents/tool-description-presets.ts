@@ -36,6 +36,7 @@ export function describeSessionsSpawnTool(): string {
     'Spawn an isolated session with `runtime="subagent"` or `runtime="acp"`.',
     '`mode="run"` is one-shot and `mode="session"` is persistent or thread-bound.',
     "Subagents inherit the parent workspace directory automatically.",
+    '`streamTo="parent"` is only valid for `runtime="acp"`; omit `streamTo` for normal subagent runs.',
     "Use this when the work should happen in a fresh child session instead of the current one.",
   ].join(" ");
 }

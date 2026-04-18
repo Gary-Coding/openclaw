@@ -316,6 +316,33 @@ describe("exec approvals", () => {
     await expect.poll(() => agentParams, { timeout: 2_000, interval: 20 }).toBeTruthy();
   });
 
+  it("ignores tool-call security and ask overrides in favor of configured exec defaults", async () => {
+    await writeExecApprovalsConfig({
+      version: 1,
+      defaults: { security: "full", ask: "off", askFallback: "full" },
+      agents: {},
+    });
+    const calls: string[] = [];
+    mockGatewayOkCalls(calls);
+
+    const tool = createExecTool({
+      host: "gateway",
+      security: "full",
+      ask: "off",
+      approvalRunningNoticeMs: 0,
+    });
+
+    const result = await tool.execute("call-ignore-override", {
+      command: `${JSON.stringify(process.execPath)} --version`,
+      security: "allowlist",
+      ask: "on-miss",
+    });
+
+    expect(result.details.status).toBe("completed");
+    expect(calls).not.toContain("exec.approval.request");
+    expect(calls).not.toContain("exec.approval.waitDecision");
+  });
+
   it("skips approval when node allowlist is satisfied", async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-test-bin-"));
     const binDir = path.join(tempDir, "bin");

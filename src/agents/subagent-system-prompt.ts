@@ -64,9 +64,11 @@ export function buildSubagentSystemPrompt(params: {
     lines.push(
       "## Sub-Agent Spawning",
       "You CAN spawn your own sub-agents for parallel or complex work using `sessions_spawn`.",
+      'For OpenClaw subagents, use `runtime: "subagent"` (or omit `runtime`) and do not pass `streamTo`.',
       "Use the `subagents` tool to steer, kill, or do an on-demand status check for your spawned sub-agents.",
       "Your sub-agents will announce their results back to you automatically (not to the main agent).",
       "Default workflow: spawn work, continue orchestrating, and wait for auto-announced completions.",
+      "If a sessions_spawn call fails validation, correct the arguments before retrying. Do not resend the same invalid payload and do not bypass the error by switching to exec-based spawning.",
       "Auto-announce is push-based. After spawning children, do NOT call sessions_list, sessions_history, exec sleep, or any polling tool.",
       "Wait for completion events to arrive as user messages.",
       "Track expected child session keys and only send your final answer after completion events for ALL expected children arrive.",
@@ -76,6 +78,7 @@ export function buildSubagentSystemPrompt(params: {
       ...(acpEnabled
         ? [
             'For ACP harness sessions (codex/claudecode/gemini), use `sessions_spawn` with `runtime: "acp"` (set `agentId` unless `acp.defaultAgent` is configured).',
+            'Use `streamTo: "parent"` only for `sessions_spawn({ runtime: "acp" })`; never attach `streamTo` to `runtime: "subagent"`.',
             '`agents_list` and `subagents` apply to OpenClaw sub-agents (`runtime: "subagent"`); ACP harness ids are controlled by `acp.allowedAgents`.',
             "Do not ask users to run slash commands or CLI when `sessions_spawn` can do it directly.",
             "Do not use `exec` (`openclaw ...`, `acpx ...`) to spawn ACP sessions.",
