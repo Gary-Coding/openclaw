@@ -283,6 +283,23 @@ describe("chat view", () => {
     expect(container.textContent).toContain("Visible assistant reply");
   });
 
+  it("does not render internal-only async follow-up stream text", () => {
+    const container = document.createElement("div");
+    render(
+      renderChat(
+        createProps({
+          stream:
+            "System (untrusted): [2026-04-18 13:06:11 GMT+8] Exec finished\nSystem (untrusted): 21\n\nAn async command you ran earlier has completed. The result is shown in the system messages above. Handle the result internally. Do not relay it to the user unless explicitly requested.\nCurrent time: Saturday, April 18th, 2026 - 13:06 (Asia/Shanghai) / 2026-04-18 05:06 UTC",
+          streamStartedAt: 1,
+        }),
+      ),
+      container,
+    );
+
+    expect(container.textContent).not.toContain("An async command you ran earlier has completed.");
+    expect(container.textContent).not.toContain("System (untrusted): [2026-04-18 13:06:11 GMT+8]");
+  });
+
   it("dismisses BTW side results from the dismiss button", () => {
     const container = document.createElement("div");
     const onDismissSideResult = vi.fn();

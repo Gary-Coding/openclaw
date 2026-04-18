@@ -1,5 +1,9 @@
 import { resetToolStream } from "../app-tool-stream.ts";
 import { extractText } from "../chat/message-extract.ts";
+import {
+  isHiddenInternalSystemFollowupMessage,
+  isHiddenInternalSystemFollowupText,
+} from "../chat/message-normalizer.ts";
 import { formatConnectError } from "../connect-error.ts";
 import { GatewayRequestError, type GatewayBrowserClient } from "../gateway.ts";
 import { normalizeLowercaseStringOrEmpty } from "../string-coerce.ts";
@@ -72,7 +76,11 @@ function isSyntheticTranscriptRepairToolResult(message: unknown): boolean {
 }
 
 function shouldHideHistoryMessage(message: unknown): boolean {
-  return isAssistantSilentReply(message) || isSyntheticTranscriptRepairToolResult(message);
+  return (
+    isAssistantSilentReply(message) ||
+    isSyntheticTranscriptRepairToolResult(message) ||
+    isHiddenInternalSystemFollowupMessage(message)
+  );
 }
 
 function isRetryableStartupUnavailable(err: unknown, method: string): err is GatewayRequestError {
@@ -415,7 +423,11 @@ export function handleChatEvent(state: ChatState, payload?: ChatEventPayload) {
   if (payload.runId && state.chatRunId && payload.runId !== state.chatRunId) {
     if (payload.state === "final") {
       const finalMessage = normalizeFinalAssistantMessage(payload.message);
-      if (finalMessage && !isAssistantSilentReply(finalMessage)) {
+      if (
+        finalMessage &&
+        !isAssistantSilentReply(finalMessage) &&
+        !isHiddenInternalSystemFollowupMessage(finalMessage)
+      ) {
         state.chatMessages = [...state.chatMessages, finalMessage];
         return null;
       }
@@ -426,14 +438,26 @@ export function handleChatEvent(state: ChatState, payload?: ChatEventPayload) {
 
   if (payload.state === "delta") {
     const next = extractText(payload.message);
-    if (typeof next === "string" && !isSilentReplyStream(next)) {
+    if (
+      typeof next === "string" &&
+      !isSilentReplyStream(next) &&
+      !isHiddenInternalSystemFollowupText(next)
+    ) {
       state.chatStream = next;
     }
   } else if (payload.state === "final") {
     const finalMessage = normalizeFinalAssistantMessage(payload.message);
-    if (finalMessage && !isAssistantSilentReply(finalMessage)) {
+    if (
+      finalMessage &&
+      !isAssistantSilentReply(finalMessage) &&
+      !isHiddenInternalSystemFollowupMessage(finalMessage)
+    ) {
       state.chatMessages = [...state.chatMessages, finalMessage];
-    } else if (state.chatStream?.trim() && !isSilentReplyStream(state.chatStream)) {
+    } else if (
+      state.chatStream?.trim() &&
+      !isSilentReplyStream(state.chatStream) &&
+      !isHiddenInternalSystemFollowupText(state.chatStream)
+    ) {
       state.chatMessages = [
         ...state.chatMessages,
         {
@@ -448,11 +472,19 @@ export function handleChatEvent(state: ChatState, payload?: ChatEventPayload) {
     state.chatStreamStartedAt = null;
   } else if (payload.state === "aborted") {
     const normalizedMessage = normalizeAbortedAssistantMessage(payload.message);
-    if (normalizedMessage && !isAssistantSilentReply(normalizedMessage)) {
+    if (
+      normalizedMessage &&
+      !isAssistantSilentReply(normalizedMessage) &&
+      !isHiddenInternalSystemFollowupMessage(normalizedMessage)
+    ) {
       state.chatMessages = [...state.chatMessages, normalizedMessage];
     } else {
       const streamedText = state.chatStream ?? "";
-      if (streamedText.trim() && !isSilentReplyStream(streamedText)) {
+      if (
+        streamedText.trim() &&
+        !isSilentReplyStream(streamedText) &&
+        !isHiddenInternalSystemFollowupText(streamedText)
+      ) {
         state.chatMessages = [
           ...state.chatMessages,
           {

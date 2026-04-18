@@ -18,6 +18,7 @@ import { InputHistory } from "../chat/input-history.ts";
 import { extractTextCached } from "../chat/message-extract.ts";
 import {
   isHiddenInternalSystemFollowupMessage,
+  isHiddenInternalSystemFollowupText,
   isToolResultMessage,
   normalizeMessage,
   normalizeRoleForGrouping,
@@ -1858,7 +1859,7 @@ function buildChatItems(props: ChatProps): Array<ChatItem | MessageGroup> {
     }
   }
 
-  if (props.stream !== null) {
+  if (props.stream !== null && !isHiddenInternalSystemFollowupText(props.stream)) {
     const key = `stream:${props.sessionKey}:${props.streamStartedAt ?? "live"}`;
     if (props.stream.trim().length > 0) {
       items.push({

@@ -457,6 +457,62 @@ describe("handleChatEvent", () => {
     expect(state.chatMessages).toEqual([]);
   });
 
+  it("does not persist internal-only async follow-up final payloads", () => {
+    const state = createState({
+      sessionKey: "main",
+      chatRunId: "run-1",
+      chatStream:
+        "An async command you ran earlier has completed. The result is shown in the system messages above. Handle the result internally. Do not relay it to the user unless explicitly requested.",
+      chatStreamStartedAt: 100,
+    });
+    const payload: ChatEventPayload = {
+      runId: "run-1",
+      sessionKey: "main",
+      state: "final",
+      message: {
+        role: "assistant",
+        content: [
+          {
+            type: "text",
+            text: "System (untrusted): [2026-04-18 13:06:11 GMT+8] Exec finished\nSystem (untrusted): 21\n\nAn async command you ran earlier has completed. The result is shown in the system messages above. Handle the result internally. Do not relay it to the user unless explicitly requested.\nCurrent time: Saturday, April 18th, 2026 - 13:06 (Asia/Shanghai) / 2026-04-18 05:06 UTC",
+          },
+        ],
+      },
+    };
+
+    expect(handleChatEvent(state, payload)).toBe("final");
+    expect(state.chatMessages).toEqual([]);
+    expect(state.chatRunId).toBe(null);
+    expect(state.chatStream).toBe(null);
+  });
+
+  it("does not surface internal-only async follow-up deltas", () => {
+    const state = createState({
+      sessionKey: "main",
+      chatRunId: "run-1",
+      chatStream: "Working...",
+      chatStreamStartedAt: 100,
+    });
+    const payload: ChatEventPayload = {
+      runId: "run-1",
+      sessionKey: "main",
+      state: "delta",
+      message: {
+        role: "assistant",
+        content: [
+          {
+            type: "text",
+            text: "System (untrusted): [2026-04-18 13:06:11 GMT+8] Exec finished\nSystem (untrusted): 21\n\nAn async command you ran earlier has completed. The result is shown in the system messages above. Handle the result internally. Do not relay it to the user unless explicitly requested.\nCurrent time: Saturday, April 18th, 2026 - 13:06 (Asia/Shanghai) / 2026-04-18 05:06 UTC",
+          },
+        ],
+      },
+    };
+
+    expect(handleChatEvent(state, payload)).toBe("delta");
+    expect(state.chatStream).toBe("Working...");
+    expect(state.chatMessages).toEqual([]);
+  });
+
   it("does not persist NO_REPLY stream text on abort", () => {
     const state = createState({
       sessionKey: "main",
@@ -583,6 +639,33 @@ describe("loadChatHistory", () => {
         toolName: "shell",
         content: [{ type: "text", text: "real tool output" }],
       },
+    ];
+    const mockClient = {
+      request: vi.fn().mockResolvedValue({ messages }),
+    };
+    const state = createState({
+      client: mockClient as unknown as ChatState["client"],
+      connected: true,
+    });
+
+    await loadChatHistory(state);
+
+    expect(state.chatMessages).toEqual([messages[0], messages[2]]);
+  });
+
+  it("filters internal-only async follow-up messages from history", async () => {
+    const messages = [
+      { role: "user", content: [{ type: "text", text: "hello" }] },
+      {
+        role: "assistant",
+        content: [
+          {
+            type: "text",
+            text: "System (untrusted): [2026-04-18 13:06:11 GMT+8] Exec finished\nSystem (untrusted): 21\n\nAn async command you ran earlier has completed. The result is shown in the system messages above. Handle the result internally. Do not relay it to the user unless explicitly requested.\nCurrent time: Saturday, April 18th, 2026 - 13:06 (Asia/Shanghai) / 2026-04-18 05:06 UTC",
+          },
+        ],
+      },
+      { role: "assistant", content: [{ type: "text", text: "visible answer" }] },
     ];
     const mockClient = {
       request: vi.fn().mockResolvedValue({ messages }),

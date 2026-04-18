@@ -265,7 +265,7 @@ function extractPlainTextFromMessageRecord(message: Record<string, unknown>): st
     .join("\n");
 }
 
-function isInternalOnlyAsyncCommandFollowupText(text: string): boolean {
+export function isHiddenInternalSystemFollowupText(text: string): boolean {
   const trimmed = text.trim();
   if (!trimmed) {
     return false;
@@ -307,7 +307,7 @@ export function isHiddenInternalSystemFollowupMessage(message: unknown): boolean
     return false;
   }
   const record = message as Record<string, unknown>;
-  return isInternalOnlyAsyncCommandFollowupText(extractPlainTextFromMessageRecord(record));
+  return isHiddenInternalSystemFollowupText(extractPlainTextFromMessageRecord(record));
 }
 
 /**
