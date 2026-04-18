@@ -229,6 +229,33 @@ describe("chat view", () => {
     expect(container.querySelectorAll(".chat-side-result")).toHaveLength(1);
   });
 
+  it("hides internal async follow-up system prompts from the visible transcript", () => {
+    const container = document.createElement("div");
+    render(
+      renderChat(
+        createProps({
+          messages: [
+            {
+              role: "user",
+              content:
+                "An async command you ran earlier has completed.\nHandle the result internally. Do not relay it to the user unless explicitly requested.",
+              timestamp: 1,
+            },
+            {
+              role: "assistant",
+              content: [{ type: "text", text: "Visible assistant reply" }],
+              timestamp: 2,
+            },
+          ],
+        }),
+      ),
+      container,
+    );
+
+    expect(container.textContent).not.toContain("An async command you ran earlier has completed.");
+    expect(container.textContent).toContain("Visible assistant reply");
+  });
+
   it("dismisses BTW side results from the dismiss button", () => {
     const container = document.createElement("div");
     const onDismissSideResult = vi.fn();

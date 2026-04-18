@@ -289,4 +289,25 @@ describe("buildReplyPayloads media filter integration", () => {
     expect(replyPayloads).toHaveLength(1);
     expect(replyPayloads[0]?.text).toBe("hello world!");
   });
+
+  it("suppresses text-only acknowledgement replies for internal-only follow-up runs", async () => {
+    const { replyPayloads } = await buildReplyPayloads({
+      ...baseParams,
+      payloads: [{ text: "好的" }],
+      suppressInternalOnlyAckReplies: true,
+    });
+
+    expect(replyPayloads).toHaveLength(0);
+  });
+
+  it("keeps substantive replies when internal-only acknowledgement suppression is enabled", async () => {
+    const { replyPayloads } = await buildReplyPayloads({
+      ...baseParams,
+      payloads: [{ text: "我查到当前执行环境是 Linux raspberrypi。" }],
+      suppressInternalOnlyAckReplies: true,
+    });
+
+    expect(replyPayloads).toHaveLength(1);
+    expect(replyPayloads[0]?.text).toBe("我查到当前执行环境是 Linux raspberrypi。");
+  });
 });

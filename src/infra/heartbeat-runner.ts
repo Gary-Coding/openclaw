@@ -1013,6 +1013,7 @@ export async function runHeartbeatOnce(opts: {
       isHeartbeat: true,
       ...(heartbeatModelOverride ? { heartbeatModelOverride } : {}),
       suppressToolErrorWarnings,
+      suppressInternalOnlyAckReplies: hasExecCompletion && !canRelayToUser,
       // Heartbeat timeout is a per-run override so user turns keep the global default.
       timeoutOverrideSeconds,
       bootstrapContextMode,

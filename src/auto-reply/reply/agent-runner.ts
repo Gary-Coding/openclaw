@@ -1363,6 +1363,7 @@ export async function runReplyAgent(params: {
       }),
       accountId: sessionCtx.AccountId,
       normalizeMediaPaths: normalizeReplyMediaPaths,
+      suppressInternalOnlyAckReplies: opts?.suppressInternalOnlyAckReplies,
     });
     const { replyPayloads } = payloadResult;
     didLogHeartbeatStrip = payloadResult.didLogHeartbeatStrip;

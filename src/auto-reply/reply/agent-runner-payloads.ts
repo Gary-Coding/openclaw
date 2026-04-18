@@ -87,6 +87,40 @@ async function normalizeSentMediaUrlsForDedupe(params: {
   return normalizedUrls;
 }
 
+const INTERNAL_ONLY_ACK_TEXTS = new Set([
+  "ok",
+  "okay",
+  "got it",
+  "understood",
+  "done",
+  "好",
+  "好的",
+  "收到",
+  "明白",
+  "明白了",
+  "知道了",
+  "了解",
+  "已了解",
+]);
+
+function normalizeAckText(text: string): string {
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(/^[\s"'`([{<]+|[\s"'`)\]}>.!?,;:~]+$/g, "");
+}
+
+function isInternalOnlyAckPayload(payload: ReplyPayload): boolean {
+  if (resolveSendableOutboundReplyParts(payload).hasMedia) {
+    return false;
+  }
+  const text = payload.text?.trim();
+  if (!text) {
+    return false;
+  }
+  return INTERNAL_ONLY_ACK_TEXTS.has(normalizeAckText(text));
+}
+
 export async function buildReplyPayloads(params: {
   payloads: ReplyPayload[];
   isHeartbeat: boolean;
@@ -108,6 +142,7 @@ export async function buildReplyPayloads(params: {
   originatingTo?: string;
   accountId?: string;
   normalizeMediaPaths?: (payload: ReplyPayload) => Promise<ReplyPayload>;
+  suppressInternalOnlyAckReplies?: boolean;
 }): Promise<{ replyPayloads: ReplyPayload[]; didLogHeartbeatStrip: boolean }> {
   let didLogHeartbeatStrip = params.didLogHeartbeatStrip;
   const sanitizedPayloads = params.isHeartbeat
@@ -225,7 +260,10 @@ export async function buildReplyPayloads(params: {
             (payload) => !params.directlySentBlockKeys!.has(createBlockReplyContentKey(payload)),
           )
         : mediaFilteredPayloads;
-  const replyPayloads = suppressMessagingToolReplies ? [] : filteredPayloads;
+  const ackFilteredPayloads = params.suppressInternalOnlyAckReplies
+    ? filteredPayloads.filter((payload) => !isInternalOnlyAckPayload(payload))
+    : filteredPayloads;
+  const replyPayloads = suppressMessagingToolReplies ? [] : ackFilteredPayloads;
 
   return {
     replyPayloads,

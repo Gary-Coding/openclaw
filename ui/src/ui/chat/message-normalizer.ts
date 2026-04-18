@@ -239,12 +239,87 @@ function expandTextContent(text: string): {
   };
 }
 
+function extractPlainTextFromMessageRecord(message: Record<string, unknown>): string {
+  if (typeof message.content === "string") {
+    return message.content;
+  }
+  if (typeof message.text === "string") {
+    return message.text;
+  }
+  if (!Array.isArray(message.content)) {
+    return "";
+  }
+  return message.content
+    .flatMap((item) => {
+      if (
+        typeof item === "object" &&
+        item !== null &&
+        "type" in item &&
+        (item as { type?: unknown }).type === "text" &&
+        typeof (item as { text?: unknown }).text === "string"
+      ) {
+        return [(item as { text: string }).text];
+      }
+      return [];
+    })
+    .join("\n");
+}
+
+function isInternalOnlyAsyncCommandFollowupText(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return false;
+  }
+  return (
+    trimmed.startsWith("An async command you ran earlier has completed.") &&
+    trimmed.includes(
+      "\nHandle the result internally. Do not relay it to the user unless explicitly requested.",
+    )
+  );
+}
+
+function shouldRenderSyntheticUserMessageAsSystem(message: Record<string, unknown>): boolean {
+  const role = typeof message.role === "string" ? message.role.toLowerCase() : "";
+  if (role !== "user") {
+    return false;
+  }
+  const text = extractPlainTextFromMessageRecord(message).trim();
+  if (!text) {
+    return false;
+  }
+  if (/^System(?: \(untrusted\))?:\s*\[[^\]]+\]/.test(text)) {
+    return true;
+  }
+  return (
+    text.startsWith("An async command you ran earlier has completed.") ||
+    text.startsWith("A scheduled reminder has been triggered.") ||
+    text.startsWith("A scheduled cron event was triggered,") ||
+    text.startsWith("Current time:") ||
+    text.includes("\nDo not run the command again.") ||
+    text.includes(
+      "\nHandle the result internally. Do not relay it to the user unless explicitly requested.",
+    )
+  );
+}
+
+export function isHiddenInternalSystemFollowupMessage(message: unknown): boolean {
+  if (!message || typeof message !== "object" || Array.isArray(message)) {
+    return false;
+  }
+  const record = message as Record<string, unknown>;
+  return isInternalOnlyAsyncCommandFollowupText(extractPlainTextFromMessageRecord(record));
+}
+
 /**
  * Normalize a raw message object into a consistent structure.
  */
 export function normalizeMessage(message: unknown): NormalizedMessage {
   const m = message as Record<string, unknown>;
   let role = typeof m.role === "string" ? m.role : "unknown";
+
+  if (shouldRenderSyntheticUserMessageAsSystem(m)) {
+    role = "system";
+  }
 
   // Detect tool messages by common gateway shapes.
   // Some tool events come through as assistant role with tool_* items in the content array.

@@ -389,6 +389,31 @@ describe("message-normalizer", () => {
 
       expect(result.senderLabel).toBe("Iris");
     });
+
+    it("reclassifies synthetic async exec follow-up prompts as system messages", () => {
+      const result = normalizeMessage({
+        role: "user",
+        content:
+          "System (untrusted): [2026-04-17 23:34:52 GMT+8] Exec failed (tidal-co, signal SIGKILL)\n\nAn async command you ran earlier has completed.\nDo not run the command again.\nHandle the result internally. Do not relay it to the user unless explicitly requested.",
+      });
+
+      expect(result.role).toBe("system");
+      expect(result.content).toEqual([
+        {
+          type: "text",
+          text: "System (untrusted): [2026-04-17 23:34:52 GMT+8] Exec failed (tidal-co, signal SIGKILL)\n\nAn async command you ran earlier has completed.\nDo not run the command again.\nHandle the result internally. Do not relay it to the user unless explicitly requested.",
+        },
+      ]);
+    });
+
+    it("reclassifies pure system-event transcript lines as system messages", () => {
+      const result = normalizeMessage({
+        role: "user",
+        content: "System: [2026-04-17 23:34:52 GMT+8] Node connected.",
+      });
+
+      expect(result.role).toBe("system");
+    });
   });
 
   describe("normalizeRoleForGrouping", () => {

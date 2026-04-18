@@ -17,6 +17,7 @@ import {
 import { InputHistory } from "../chat/input-history.ts";
 import { extractTextCached } from "../chat/message-extract.ts";
 import {
+  isHiddenInternalSystemFollowupMessage,
   isToolResultMessage,
   normalizeMessage,
   normalizeRoleForGrouping,
@@ -1767,6 +1768,9 @@ function buildChatItems(props: ChatProps): Array<ChatItem | MessageGroup> {
   for (let i = historyStart; i < history.length; i++) {
     const msg = history[i];
     const normalized = normalizeMessage(msg);
+    if (isHiddenInternalSystemFollowupMessage(msg)) {
+      continue;
+    }
     const raw = msg as Record<string, unknown>;
     const marker = raw.__openclaw as Record<string, unknown> | undefined;
     if (marker && marker.kind === "compaction") {
