@@ -1253,6 +1253,8 @@
     "proxy:install-ca": "node --import tsx scripts/proxy-install-ca.mjs",
     "proxy:run": "node scripts/run-node.mjs proxy run",
     "proxy:start": "node scripts/run-node.mjs proxy start",
+    "publish:private:npm": "bash scripts/publish-private-npm.sh --publish",
+    "publish:private:npm:dry-run": "bash scripts/publish-private-npm.sh --dry-run",
     "qa:e2e": "node --import tsx scripts/qa-e2e.ts",
     "qa:lab:build": "vite build --config extensions/qa-lab/web/vite.config.ts",
     "qa:lab:ui": "pnpm openclaw qa ui",
