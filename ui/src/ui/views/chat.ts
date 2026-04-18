@@ -15,7 +15,7 @@ import {
   renderStreamingGroup,
 } from "../chat/grouped-render.ts";
 import { InputHistory } from "../chat/input-history.ts";
-import { extractTextCached } from "../chat/message-extract.ts";
+import { extractTextCached, extractThinkingCached } from "../chat/message-extract.ts";
 import {
   isHiddenInternalSystemFollowupMessage,
   isHiddenInternalSystemFollowupText,
